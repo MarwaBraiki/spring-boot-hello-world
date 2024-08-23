@@ -25,6 +25,22 @@ public class Ville implements Serializable {
     @NotNull(message = "The department cannot be null")
     private Departement departement;
 
+    public Ville(Long id, String nom, int population, Departement departement) {
+        this.id = id;
+        this.nom = nom;
+        this.population = population;
+        this.departement = departement;
+    }
+
+    public Ville(String nom, int population, Departement departement) {
+        this.nom = nom;
+        this.population = population;
+        this.departement = departement;
+    }
+
+    public Ville() {
+    }
+
     // Getters and Setters
 
     public Long getId() {
