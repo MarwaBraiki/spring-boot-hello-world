@@ -2,13 +2,16 @@ package fr.diginamic.hello.controllers;
 
 import fr.diginamic.hello.exceptions.ResourceNotFoundException;
 import fr.diginamic.hello.controllers.genericmodels.ApiResponse;
-
+import fr.diginamic.hello.model.Departement;
 import fr.diginamic.hello.model.Ville;
 import fr.diginamic.hello.services.VilleService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.StringWriter;
 import java.util.List;
 
 @RestController
@@ -72,5 +75,34 @@ public class VilleController {
             ApiResponse response = new ApiResponse(false, e.getMessage(), null);
             return ResponseEntity.notFound().build();
         }
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<String> exportVillesToCsv() {
+        List<Ville> villes = villeService.findAll();
+        if (villes == null || villes.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        StringWriter csvWriter = new StringWriter();
+        csvWriter.append("Nom de la ville,Nombre d’habitants,Code département,Nom du département\n");
+
+        for (Ville ville : villes) {
+            Departement departement = ville.getDepartement();
+            csvWriter.append(ville.getNom())
+                    .append(',')
+                    .append(String.valueOf(ville.getPopulation()))
+                    .append(',')
+                    .append(departement != null ? departement.getId().toString() : "N/A")
+                    .append(',')
+                    .append(departement != null ? departement.getNom() : "N/A")
+                    .append('\n');
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=villes.csv");
+        headers.add(HttpHeaders.CONTENT_TYPE, "text/csv");
+
+        return new ResponseEntity<>(csvWriter.toString(), headers, HttpStatus.OK);
     }
 }

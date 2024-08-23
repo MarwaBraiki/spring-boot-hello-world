@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -141,5 +143,35 @@ class VilleControllerTest {
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
         verify(villeService, times(1)).delete(anyLong());
+    }
+
+    @Test
+    void exportVillesToCsv_shouldReturnCsvContent_whenVillesAreFound() {
+        Ville ville1 = new Ville(1L, "City1", 5000, departement);
+        Ville ville2 = new Ville(2L, "City2", 8000, departement);
+        List<Ville> villes = Arrays.asList(ville1, ville2);
+        when(villeService.findAll()).thenReturn(villes);
+
+        ResponseEntity<String> responseEntity = villeController.exportVillesToCsv();
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("attachment; filename=villes.csv", responseEntity.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
+        assertEquals("text/csv", responseEntity.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
+
+        String expectedCsv = "City Name,Population,Department Code,Department Name\n" +
+                "City1,5000,1,Department1\n" +
+                "City2,8000,1,Department1\n";
+        assertEquals(expectedCsv, responseEntity.getBody());
+        verify(villeService, times(1)).findAll();
+    }
+
+    @Test
+    void exportVillesToCsv_shouldReturnNoContent_whenNoVillesFound() {
+        when(villeService.findAll()).thenReturn(Collections.emptyList());
+
+        ResponseEntity<String> responseEntity = villeController.exportVillesToCsv();
+
+        assertEquals(HttpStatus.NO_CONTENT, responseEntity.getStatusCode());
+        verify(villeService, times(1)).findAll();
     }
 }

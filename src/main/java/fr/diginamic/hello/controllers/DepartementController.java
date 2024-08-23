@@ -6,9 +6,12 @@ import fr.diginamic.hello.model.Departement;
 import fr.diginamic.hello.services.DepartementService;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.StringWriter;
 import java.util.List;
 
 @RestController
@@ -61,5 +64,26 @@ public class DepartementController {
         departementService.deleteDepartement(id);
         ApiResponse response = new ApiResponse(true, "Departement deleted successfully", null);
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/export/csv")
+    public ResponseEntity<String> exportDepartementsToCsv() {
+        List<Departement> departements = departementService.getAllDepartements();
+        if (departements.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+
+        StringWriter writer = new StringWriter();
+        writer.write("Department Code,Department Name\n");
+
+        for (Departement departement : departements) {
+            writer.write(departement.getCode() + "," + departement.getNom() + "\n");
+        }
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, "text/csv");
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=departements.csv");
+
+        return new ResponseEntity<>(writer.toString(), headers, HttpStatus.OK);
     }
 }

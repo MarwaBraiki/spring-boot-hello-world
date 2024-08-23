@@ -10,9 +10,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
+import java.io.StringWriter;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -37,6 +39,7 @@ class DepartementControllerTest {
         MockitoAnnotations.openMocks(this);
         departement = new Departement();
         departement.setId(1L);
+        departement.setCode("01");
         departement.setNom("Departement Test");
     }
 
@@ -44,10 +47,12 @@ class DepartementControllerTest {
     void getAllDepartements_shouldReturnOk_whenDepartementsAreFound() {
         Departement departement1 = new Departement();
         departement1.setId(2L);
+        departement1.setCode("02");
         departement1.setNom("Departement 1");
 
         Departement departement2 = new Departement();
         departement2.setId(3L);
+        departement2.setCode("03");
         departement2.setNom("Departement 2");
 
         List<Departement> departements = Arrays.asList(departement1, departement2);
@@ -157,5 +162,41 @@ class DepartementControllerTest {
         }
 
         verify(departementService, times(1)).deleteDepartement(anyLong());
+    }
+
+    @Test
+    void exportDepartementsToCsv_shouldReturnCsvContent_whenDepartementsAreFound() {
+        Departement departement1 = new Departement();
+        departement1.setCode("01");
+        departement1.setNom("Departement 1");
+
+        Departement departement2 = new Departement();
+        departement2.setCode("02");
+        departement2.setNom("Departement 2");
+
+        List<Departement> departements = Arrays.asList(departement1, departement2);
+        when(departementService.getAllDepartements()).thenReturn(departements);
+
+        ResponseEntity<String> responseEntity = departementController.exportDepartementsToCsv();
+
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertEquals("attachment; filename=departements.csv", responseEntity.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION));
+        assertEquals("text/csv", responseEntity.getHeaders().getFirst(HttpHeaders.CONTENT_TYPE));
+
+        String expectedCsv = "Department Code,Department Name\n" +
+                "01,Departement 1\n" +
+                "02,Departement 2\n";
+        assertEquals(expectedCsv, responseEntity.getBody());
+        verify(departementService, times(1)).getAllDepartements();
+    }
+
+    @Test
+    void exportDepartementsToCsv_shouldReturnNoContent_whenNoDepartementsFound() {
+        when(departementService.getAllDepartements()).thenReturn(Collections.emptyList());
+
+        ResponseEntity<String> responseEntity = departementController.exportDepartementsToCsv();
+
+        assertEquals(HttpStatus.NO_CONTENT, responseEntity.getStatusCode());
+        verify(departementService, times(1)).getAllDepartements();
     }
 }
